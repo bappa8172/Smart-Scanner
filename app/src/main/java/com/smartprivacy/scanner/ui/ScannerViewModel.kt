@@ -76,6 +76,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         repository = ScannerRepository(database.appDao(), appScanner)
 
         viewModelScope.launch {
+            // Quick sync to remove uninstalled apps on startup
+            appScanner.syncWithInstalledApps()
+            
             repository.allApps.collectLatest { appList ->
                 val system = appList.filter { it.isSystemApp }
                 val installed = appList.filter { !it.isSystemApp }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 
 class AppScanner(
     context: Context, // Removed 'private val' since it's unused property
@@ -79,4 +80,19 @@ class AppScanner(
         appDao.deleteAll()
         appDao.insertApps(appEntities)
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * Quickly syncs database with installed apps to remove uninstalled ones.
+     * Does not perform full risk analysis on new apps, only removal.
+     */
+    suspend fun syncWithInstalledApps() = withContext(Dispatchers.IO) {
+        val installedPackages = packageHelper.getInstalledApps().map { it.packageName }.toSet()
+        val dbApps = appDao.getAllAppsOnce()
+        
+        dbApps.forEach { app ->
+            if (app.packageName !in installedPackages) {
+                appDao.deleteApp(app.packageName)
+            }
+        }
+    }
 }
